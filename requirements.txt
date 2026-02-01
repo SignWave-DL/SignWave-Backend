@@ -1,22 +1,45 @@
-# SignWave Project Dependencies
+# ========================
+# Core Backend
+# ========================
+fastapi
+uvicorn[standard]
+pydantic
 
-# Core Audio Processing
-openai-whisper==20250625
+# ========================
+# Speech-to-Text (Whisper)
+# ========================
+openai-whisper
+torch
+torchaudio
+numpy
 
-# Deep Learning Framework (GPU CUDA 11.8)
-torch==2.7.1+cu118
-torchvision==0.22.1+cu118
-torchaudio==2.7.1+cu118
+# ========================
+# Text Processing (NLP)
+# ========================
+regex
+nltk
+spacy
 
-# Supporting Libraries
-numpy==2.3.5
-pillow==12.0.0
-tqdm==4.67.1
-requests==2.32.5
-tiktoken==0.12.0
-numba==0.63.1
-more-itertools==10.8.0
+# ========================
+# Database (SQLite)
+# ========================
+sqlalchemy
 
-# Note: FFmpeg (Essentials Build) installed via winget
-# Installation: winget install "FFmpeg (Essentials Build)"
-# Ensure FFmpeg bin folder is added to Windows PATH
+# ========================
+# Audio Processing
+# ========================
+pydub
+ffmpeg-python
+
+# ========================
+# WebSocket for real-time
+# ========================
+websockets
+
+# ========================
+# Utils
+# ========================
+requests
+python-multipart
+alembic
+asyncpg
