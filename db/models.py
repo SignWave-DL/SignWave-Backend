@@ -4,9 +4,10 @@ from sqlalchemy import String, DateTime, ForeignKey, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from db.database import Base
 from db import schema
 
-class Session(schema):
+class Session(Base):
     __tablename__ = "sessions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -19,7 +20,7 @@ class Session(schema):
     utterances: Mapped[list["Utterance"]] = relationship(back_populates="session", cascade="all, delete-orphan")
 
 
-class Utterance(schema):
+class Utterance(Base):
     __tablename__ = "utterances"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -33,7 +34,7 @@ class Utterance(schema):
     gloss_tokens: Mapped[list["GlossToken"]] = relationship(back_populates="utterance", cascade="all, delete-orphan")
 
 
-class GlossToken(schema):
+class GlossToken(Base):
     __tablename__ = "gloss_tokens"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
