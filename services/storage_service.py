@@ -20,7 +20,7 @@ def save_audio_bytes(audio_bytes: bytes, ext: str = "webm") -> str:
     path = os.path.join(AUDIO_DIR, name)
     with open(path, "wb") as f:
         f.write(audio_bytes)
-    return path
+    return os.path.abspath(path)
 
 
 def save_result_json(session_id: str, transcript: str, gloss: list[str]) -> str:
