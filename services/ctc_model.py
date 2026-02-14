@@ -39,17 +39,38 @@ class CTCASR(nn.Module):
         return self.fc(out)  # (B,T,V)
 
 def greedy_decode(logits, itos, blank_id=0):
-    pred = logits.argmax(dim=-1)
+    # logits: (B, T, V)
+    probs = torch.nn.functional.softmax(logits, dim=-1)
+    max_probs, pred = torch.max(probs, dim=-1)  # (B, T)
+    
     texts = []
-    for seq in pred:
+    confidences = []
+    
+    for i in range(len(pred)):
+        seq = pred[i].tolist()
+        seq_probs = max_probs[i].tolist()
+        
         prev = None
         chars = []
-        for p in seq.tolist():
+        char_probs = []
+        
+        for idx, p in enumerate(seq):
             if p != blank_id and p != prev:
                 chars.append(itos[p])
+                char_probs.append(seq_probs[idx])
             prev = p
-        texts.append("".join(chars).replace("  ", " ").strip())
-    return texts
+            
+        text = "".join(chars).replace("  ", " ").strip()
+        texts.append(text)
+        
+        # Calculate mean confidence for the sentence
+        if len(char_probs) > 0:
+            avg_conf = sum(char_probs) / len(char_probs)
+        else:
+            avg_conf = 0.0
+        confidences.append(avg_conf)
+        
+    return texts, confidences
 
 class CTCTranscriber:
     def __init__(self, ckpt_path: str):
@@ -72,11 +93,57 @@ class CTCTranscriber:
         state = ckpt["model_state"] if "model_state" in ckpt else ckpt["model"]
         self.model.load_state_dict(state)
 
+        self.fe.to(DEVICE)
         self.model.to(DEVICE).eval()
+        
+        # Extract and display model info
+        self.accuracy = ckpt.get("accuracy", None)
+        self.test_accuracy = ckpt.get("test_accuracy", None)
+        self.val_accuracy = ckpt.get("val_accuracy", None)
+        self.train_accuracy = ckpt.get("train_accuracy", None)
+        self.epoch = ckpt.get("epoch", None)
+        self.loss = ckpt.get("loss", None)
+        
+        # Count model parameters
+        total_params = sum(p.numel() for p in self.model.parameters())
+        trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        
+        print("\n" + "="*60)
+        print("🤖 CTC MODEL INFO")
+        print("="*60)
+        print(f"📍 Device: {DEVICE}")
+        if torch.cuda.is_available():
+            print(f"🎮 GPU: {torch.cuda.get_device_name(0)}")
+            print(f"💾 GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+        print(f"🔢 Vocabulary Size: {len(vocab)}")
+        print(f"🎵 Sample Rate: {self.sample_rate} Hz")
+        print(f"📊 Mel Features: {self.n_mels}")
+        print(f"🧠 Hidden Units: {hidden}")
+        print(f"📚 LSTM Layers: {layers}")
+        print(f"⚙️  Total Parameters: {total_params:,}")
+        print(f"🎯 Trainable Parameters: {trainable_params:,}")
+        
+        if self.epoch is not None:
+            print(f"📈 Epoch: {self.epoch}")
+        if self.loss is not None:
+            print(f"📉 Loss: {self.loss:.4f}")
+        if self.accuracy is not None:
+            print(f"✅ Accuracy: {self.accuracy:.2%}")
+        if self.train_accuracy is not None:
+            print(f"🏋️  Train Accuracy: {self.train_accuracy:.2%}")
+        if self.val_accuracy is not None:
+            print(f"✔️  Val Accuracy: {self.val_accuracy:.2%}")
+        if self.test_accuracy is not None:
+            print(f"🎯 Test Accuracy: {self.test_accuracy:.2%}")
+        
+        print("="*60 + "\n")
 
     @torch.no_grad()
-    def transcribe(self, wav: torch.Tensor, sr: int) -> str:
+    def transcribe(self, wav: torch.Tensor, sr: int) -> tuple[str, float]:
+        wav = wav.to(DEVICE)
         feat = self.fe(wav, sr)
-        x = feat.unsqueeze(0).to(DEVICE)     # (1,T,F)
-        logits = self.model(x).cpu()         # (1,T,V)
-        return greedy_decode(logits, self.itos, blank_id=self.blank_id)[0]
+        x = feat.unsqueeze(0)
+        logits = self.model(x).cpu()
+        
+        texts, confidences = greedy_decode(logits, self.itos, blank_id=self.blank_id)
+        return texts[0], confidences[0]

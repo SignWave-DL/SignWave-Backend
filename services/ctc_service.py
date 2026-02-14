@@ -13,8 +13,8 @@ _ctc = None
 def get_ctc():
     global _ctc
     if _ctc is None:
-        # path to your saved checkpoint
-        _ctc = CTCTranscriber(r"C:\Users\jfvdk\Desktop\Git\Deep-Learning\SignWave-Backend\services\checkpoints\ctc_asr.pt")
+        checkpoint_path = os.path.join(os.path.dirname(__file__), "checkpoints", "ctc_asr.pt")
+        _ctc = CTCTranscriber(checkpoint_path)
 
     return _ctc
 
@@ -58,7 +58,7 @@ def _webm_bytes_to_waveform(audio_bytes: bytes):
         except:
             pass
 
-def transcribe_bytes_ctc(audio_bytes: bytes, language="en") -> str:
+def transcribe_bytes_ctc(audio_bytes: bytes, language="en") -> tuple[str, float]:
     """
     Transcribe audio bytes using your CTC model.
     (language param kept for compatibility; your model may ignore it)
