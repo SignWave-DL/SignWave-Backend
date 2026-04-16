@@ -12,6 +12,7 @@ openai-whisper
 torch
 torchaudio
 numpy
+soundfile
 
 # ========================
 # Text Processing (NLP)
